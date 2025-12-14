@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const { Pool } = pkg;
-
 const pool = new Pool({
   user: "postgres",
   host: "db.uehznjfjhpuzxridpgtq.supabase.co",

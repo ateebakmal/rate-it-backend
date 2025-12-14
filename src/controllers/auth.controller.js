@@ -55,3 +55,69 @@ export async function signup(req, res) {
     });
   }
 }
+
+export async function login(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Validate Email and Password
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "Email and Password are required",
+      });
+    }
+
+    // 2. Get user from db
+    const results = await pool.query(
+      `
+      SELECT user_id, name, email, password_hash FROM users WHERE email = $1
+      `,
+      [email]
+    );
+
+    const user = results.rows[0];
+
+    // 2.1 check if users exists
+    if (results.rows.length === 0) {
+      res.status(401).json({
+        success: false,
+        error: "User doesnt exist",
+      });
+    }
+
+    // 3. Compare passwords
+    const match = await bcrypt.compare(password, user.password_hash);
+
+    if (!match) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid Email or Password",
+      });
+    }
+
+    // 4. Generate a JSON web token
+    const tokenPayload = {
+      user_id: user.user_id,
+      email: user.email,
+    };
+
+    const token = jwt.sign(tokenPayload, process.env.JWT_ACCESS_SECRET);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: "Login Succesful",
+        user: {
+          user_id: user.user_id,
+          name: user.name,
+          email: user.email,
+        },
+        token,
+      },
+    });
+  } catch (error) {
+    console.log("-------ERROR---------:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
